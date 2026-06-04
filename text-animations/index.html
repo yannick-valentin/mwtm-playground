@@ -20,6 +20,7 @@
       gap: 3rem;
       padding: 3rem;
     }
+
     .title {
       font-size: 3.5rem;
       cursor: pointer;
@@ -41,10 +42,17 @@
 
     .row-label {
       font-size: 0.75rem;
-      opacity: 0.5;
       margin-bottom: 0.25rem;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      color: #666;
+    }
+
+    .selected-badge {
+      background: #222;
+      color: #DDD;
+      padding: 0.2em .5em;
+      display: inline-block;
     }
 
     .row-right {
@@ -93,7 +101,9 @@
       top: 1px;
     }
 
-    [data-audio-wave-text] {
+    [data-audio-wave-text],
+    [data-audio-wave-bold],
+    [data-audio-wave-sweep] {
       position: relative;
       display: inline-block;
     }
@@ -138,7 +148,7 @@
 
   <div class="container">
     <div>
-      <div class="row-label">1. Fisher-Yates — full random</div>
+      <div class="row-label">1. Fisher-Yates — full random <span class="selected-badge">Favorite</span></div>
       <div class="row">
         <div class="row-left">
           <div class="title" data-hover-shuffle-full>Community Threads</div>
@@ -203,6 +213,32 @@
     </div>
 
     <div>
+      <div class="row-label">5b. Audio wave — bold</div>
+      <div class="row">
+        <div class="row-left">
+          <div class="title" data-audio-wave-bold data-wave-stroke-width="3">Community Threads</div>
+        </div>
+        <div class="row-right">
+          <button class="pill-btn"><span data-audio-wave-bold data-wave-stroke-width="1.5">Call to action</span></button>
+          <button class="simple-btn"><span data-audio-wave-bold data-wave-stroke-width="1">CALL TO ACTION</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="row-label">5c. Audio wave — sweep <span class="selected-badge">Favorite</span></div>
+      <div class="row">
+        <div class="row-left">
+          <div class="title" data-audio-wave-sweep data-wave-stroke-width="3">Community Threads</div>
+        </div>
+        <div class="row-right">
+          <button class="pill-btn"><span data-audio-wave-sweep data-wave-stroke-width="1.5">Call to action</span></button>
+          <button class="simple-btn"><span data-audio-wave-sweep data-wave-stroke-width="1">CALL TO ACTION</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- <div>
       <div class="row-label">6. Audio wave — distort</div>
       <div class="row">
         <div class="row-left">
@@ -213,7 +249,7 @@
           <button class="simple-btn" data-audio-wave-distort>CALL TO ACTION</button>
         </div>
       </div>
-    </div>
+    </div> -->
 
     <div>
       <div class="row-label">7. Scanline distort — vertical</div>
@@ -242,7 +278,7 @@
     </div>
 
     <div>
-      <div class="row-label">9. Scanline + progressive reveal</div>
+      <div class="row-label">9. Scanline + progressive reveal <span class="selected-badge">Favorite</span></div>
       <div class="row">
         <div class="row-left">
           <div class="title" data-scanline-text-reveal>Community Threads</div>
@@ -421,23 +457,26 @@
         canvas.style.height = rect.height + "px";
         const ctx = canvas.getContext("2d");
         ctx.scale(dpr, dpr);
-        inst.ctx = ctx;
-        inst.W   = rect.width;
-        inst.H   = rect.height;
+        inst.ctx      = ctx;
+        inst.W        = rect.width;
+        inst.H        = rect.height;
+        inst.fontSize = parseFloat(getComputedStyle(el).fontSize);
       }
 
-      _waveY(x, W, H, phase) {
+      _waveY(x, W, H, fontSize, phase) {
         const env = Math.exp(-Math.pow((x / W - 0.5) / 0.28, 2));
-        const amp = (env * 0.80 + 0.20) * H * 0.75;
+        const amp = (env * 0.80 + 0.20) * Math.sqrt(fontSize) * 3.2;
+        const t = (x / W) * Math.PI * 2; // 0 → 2π across element width
+        const s = Math.sqrt(W / 200);    // cycle scale: 1× at ~200px, ~1.7× at 600px
         return H / 2 + amp * (
-          Math.sin(x * 0.022) * Math.sin(phase * 2.1) * 0.50 +
-          Math.sin(x * 0.061) * Math.sin(phase * 3.4) * 0.35 +
-          Math.sin(x * 0.15 ) * Math.sin(phase * 1.8) * 0.15
+          Math.sin(t * 1.5 * s) * Math.sin(phase * 2.1) * 0.50 +
+          Math.sin(t * 3.5 * s) * Math.sin(phase * 3.4) * 0.35 +
+          Math.sin(t * 7.0 * s) * Math.sin(phase * 1.8) * 0.15
         );
       }
 
       _draw(inst, phase) {
-        const { ctx, W, H, clipX } = inst;
+        const { ctx, W, H, clipX, fontSize } = inst;
         ctx.clearRect(0, 0, W, H);
         ctx.beginPath();
         ctx.strokeStyle = "#0a0a0a";
@@ -446,7 +485,7 @@
         ctx.lineCap     = "round";
         let first = true;
         for (let x = Math.ceil(clipX); x <= W; x++) {
-          const y = this._waveY(x, W, H, phase);
+          const y = this._waveY(x, W, H, fontSize, phase);
           if (first) { ctx.moveTo(x, y); first = false; }
           else         ctx.lineTo(x, y);
         }
@@ -501,6 +540,362 @@
     }
 
     new AudioWaveText();
+
+    // ------------------------------------------------------------------------------
+
+    class AudioWaveBold {
+      constructor() {
+        this.instances = new Map();
+        this.init();
+      }
+
+      init() {
+        document.querySelectorAll("[data-audio-wave-bold]").forEach(el => {
+          this._buildDOM(el);
+          el.addEventListener("mouseenter", () => this._onEnter(el));
+          el.addEventListener("mouseleave", () => this._onLeave(el));
+        });
+      }
+
+      _buildDOM(el) {
+        const text = el.textContent.trim();
+        el.innerHTML = "";
+        el.setAttribute("aria-label", text);
+
+        const charSpans = [];
+        [...text.matchAll(GRAPHEME_RE)].map(m => m[0]).forEach(ch => {
+          if (ch === " ") {
+            const sp = document.createElement("span");
+            sp.innerHTML = "&nbsp;";
+            el.appendChild(sp);
+            charSpans.push(null);
+            return;
+          }
+          const span = document.createElement("span");
+          span.className = "aw-char";
+          span.textContent = ch;
+          el.appendChild(span);
+          charSpans.push(span);
+        });
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "aw-canvas";
+        canvas.style.opacity = "0";
+        el.appendChild(canvas);
+
+        const strokeWidth    = parseFloat(el.dataset.waveStrokeWidth) || 3;
+        const spatialOffset  = Array.from({ length: 3 }, () => Math.random() * Math.PI * 2);
+        const spatialOffset2 = Array.from({ length: 3 }, () => Math.random() * Math.PI * 2);
+        this.instances.set(el, { el, charSpans, canvas, animId: null, timeouts: [], strokeWidth, spatialOffset, spatialOffset2 });
+      }
+
+      _setupCanvas(inst) {
+        const { el, canvas } = inst;
+        const rect = el.getBoundingClientRect();
+        const dpr  = window.devicePixelRatio || 1;
+        canvas.width  = Math.round(rect.width  * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        canvas.style.width  = rect.width  + "px";
+        canvas.style.height = rect.height + "px";
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        inst.ctx      = ctx;
+        inst.W        = rect.width;
+        inst.H        = rect.height;
+        inst.fontSize = parseFloat(getComputedStyle(el).fontSize);
+      }
+
+      _waveY(x, W, H, fontSize, phase, envelope, so) {
+        const win = Math.sin(Math.PI * x / W);
+        const env = Math.exp(-Math.pow((x / W - 0.5) / 0.28, 2));
+        const ampScale = Math.min(Math.sqrt(fontSize) * 4.0, H * 0.45);
+        const amp = envelope * win * (env * 0.80 + 0.20) * ampScale;
+        const t   = (x / W) * Math.PI * 2;
+        const s   = Math.sqrt(W / 200);
+        return H / 2 + amp * (
+          Math.sin(t * 1.5 * s + so[0]) * Math.sin(phase * 2.1) * 0.50 +
+          Math.sin(t * 3.5 * s + so[1]) * Math.sin(phase * 3.4) * 0.35 +
+          Math.sin(t * 7.0 * s + so[2]) * Math.sin(phase * 1.8) * 0.15
+        );
+      }
+
+      _drawWave(ctx, W, H, fontSize, phase, envelope, so, strokeWidth) {
+        ctx.beginPath();
+        ctx.strokeStyle = "#0a0a0a";
+        ctx.lineWidth   = strokeWidth;
+        ctx.lineJoin    = "round";
+        ctx.lineCap     = "round";
+        let first = true;
+        for (let x = 0; x <= W; x++) {
+          const y = this._waveY(x, W, H, fontSize, phase, envelope, so);
+          if (first) { ctx.moveTo(x, y); first = false; }
+          else         ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      _draw(inst, phase, envelope) {
+        const { ctx, W, H, fontSize, spatialOffset, spatialOffset2 } = inst;
+        ctx.clearRect(0, 0, W, H);
+        this._drawWave(ctx, W, H, fontSize, phase,                  envelope, spatialOffset,  inst.strokeWidth);
+        this._drawWave(ctx, W, H, fontSize, phase + Math.PI / 2.1, envelope, spatialOffset2, inst.strokeWidth);
+      }
+
+      _onEnter(el) {
+        this._onLeave(el);
+        const inst = this.instances.get(el);
+        const { charSpans, canvas } = inst;
+        this._setupCanvas(inst);
+
+        const nonNull = charSpans.filter(Boolean);
+        nonNull.forEach(s => gsap.set(s, { transformOrigin: "50% 50%" }));
+
+        // Phase 1: squish text down to a line
+        inst.squishTween = gsap.to(nonNull, {
+          scaleY: 0.1,
+          duration: 0.2,
+          ease: "power2.in",
+          onComplete: () => {
+            charSpans.forEach(s => { if (s) s.style.opacity = "0"; });
+            canvas.style.opacity = "1";
+
+            // Phase 2: wave ramps in, pulses, ramps out
+            const RAMP_IN  = 10;
+            const HOLD     = 200;
+            const RAMP_OUT = 30;
+            const TOTAL    = RAMP_IN + HOLD + RAMP_OUT;
+            const smooth   = t => t * t * (3 - 2 * t);
+
+            let phase = 0;
+            const startTime = performance.now();
+
+            const loop = (now) => {
+              const elapsed = now - startTime;
+              let envelope;
+              if (elapsed < RAMP_IN) {
+                envelope = smooth(elapsed / RAMP_IN);
+              } else if (elapsed < RAMP_IN + HOLD) {
+                envelope = 1;
+              } else {
+                envelope = smooth(1 - Math.min((elapsed - RAMP_IN - HOLD) / RAMP_OUT, 1));
+              }
+
+              phase += 0.12;
+              this._draw(inst, phase, envelope);
+
+              if (elapsed < TOTAL) {
+                inst.animId = requestAnimationFrame(loop);
+              } else {
+                inst.animId = null;
+                canvas.style.opacity = "0";
+
+                // Phase 3: restore chars at scaleY 0.1, then scale back up
+                charSpans.forEach(s => { if (s) s.style.opacity = "1"; });
+                inst.revealTween = gsap.to(nonNull, {
+                  scaleY: 1,
+                  duration: 0.3,
+                  ease: "power2.out",
+                });
+              }
+            };
+
+            inst.animId = requestAnimationFrame(loop);
+          }
+        });
+      }
+
+      _onLeave(el) {
+        const inst = this.instances.get(el);
+        if (!inst) return;
+        if (inst.squishTween) { inst.squishTween.kill(); inst.squishTween = null; }
+        if (inst.revealTween) { inst.revealTween.kill(); inst.revealTween = null; }
+        if (inst.animId) { cancelAnimationFrame(inst.animId); inst.animId = null; }
+        inst.charSpans.forEach(s => {
+          if (s) { s.style.opacity = "1"; gsap.set(s, { scaleY: 1 }); }
+        });
+        inst.canvas.style.opacity = "0";
+      }
+    }
+
+    new AudioWaveBold();
+
+    // ------------------------------------------------------------------------------
+
+    class AudioWaveSweep {
+      constructor() {
+        this.instances = new Map();
+        this.init();
+      }
+
+      init() {
+        document.querySelectorAll("[data-audio-wave-sweep]").forEach(el => {
+          this._buildDOM(el);
+          el.addEventListener("mouseenter", () => this._onEnter(el));
+          el.addEventListener("mouseleave", () => this._onLeave(el));
+        });
+      }
+
+      _buildDOM(el) {
+        const text = el.textContent.trim();
+        el.innerHTML = "";
+        el.setAttribute("aria-label", text);
+
+        // Wrap chars in an inline-block layer so clip-path applies only to text
+        const textLayer = document.createElement("span");
+        textLayer.style.cssText = "display: inline-block;";
+
+        const charSpans = [];
+        [...text.matchAll(GRAPHEME_RE)].map(m => m[0]).forEach(ch => {
+          if (ch === " ") {
+            const sp = document.createElement("span");
+            sp.innerHTML = "&nbsp;";
+            textLayer.appendChild(sp);
+            charSpans.push(null);
+            return;
+          }
+          const span = document.createElement("span");
+          span.className = "aw-char";
+          span.textContent = ch;
+          textLayer.appendChild(span);
+          charSpans.push(span);
+        });
+
+        el.appendChild(textLayer);
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "aw-canvas";
+        canvas.style.opacity = "0";
+        el.appendChild(canvas);
+
+        const strokeWidth    = parseFloat(el.dataset.waveStrokeWidth) || 3;
+        const spatialOffset  = Array.from({ length: 3 }, () => Math.random() * Math.PI * 2);
+        const spatialOffset2 = Array.from({ length: 3 }, () => Math.random() * Math.PI * 2);
+        this.instances.set(el, { el, charSpans, textLayer, canvas, animId: null, strokeWidth, spatialOffset, spatialOffset2 });
+      }
+
+      _setupCanvas(inst) {
+        const { el, canvas } = inst;
+        const rect = el.getBoundingClientRect();
+        const dpr  = window.devicePixelRatio || 1;
+        canvas.width  = Math.round(rect.width  * dpr);
+        canvas.height = Math.round(rect.height * dpr);
+        canvas.style.width  = rect.width  + "px";
+        canvas.style.height = rect.height + "px";
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+        inst.ctx      = ctx;
+        inst.W        = rect.width;
+        inst.H        = rect.height;
+        inst.fontSize = parseFloat(getComputedStyle(el).fontSize);
+      }
+
+      _waveY(x, W, H, fontSize, phase, so, ampMult = 1) {
+        const env      = Math.exp(-Math.pow((x / W - 0.5) / 0.28, 2));
+        const ampScale = Math.min(Math.sqrt(fontSize) * 4.0, H * 0.45);
+        const amp      = (env * 0.20 + 0.80) * ampScale * ampMult;
+        const t        = (x / W) * Math.PI * 2 * 2;
+        const s        = Math.sqrt(W / 200);
+        return H / 2 + amp * (
+          Math.sin(t * 1.5 * s + so[0]) * Math.sin(phase * 2.1) * 0.50 +
+          Math.sin(t * 3.5 * s + so[1]) * Math.sin(phase * 3.4) * 0.35 +
+          Math.sin(t * 7.0 * s + so[2]) * Math.sin(phase * 1.8) * 0.15
+        );
+      }
+
+      _drawWave(ctx, W, H, fontSize, phase, so, strokeWidth, clipFrom, clipTo, ampMult = 1) {
+        if (clipTo <= clipFrom) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(clipFrom, 0, clipTo - clipFrom, H);
+        ctx.clip();
+        ctx.beginPath();
+        ctx.strokeStyle = "#0a0a0a";
+        ctx.lineWidth   = strokeWidth;
+        ctx.lineJoin    = "round";
+        ctx.lineCap     = "round";
+        let first = true;
+        for (let x = 0; x <= W; x++) {
+          const y = this._waveY(x, W, H, fontSize, phase, so, ampMult);
+          if (first) { ctx.moveTo(x, y); first = false; }
+          else         ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      _onEnter(el) {
+        this._onLeave(el);
+        const inst = this.instances.get(el);
+        const { textLayer } = inst;
+        this._setupCanvas(inst);
+        const { W, H, fontSize } = inst;
+
+        inst.canvas.style.opacity = "1";
+
+        const SWEEP_IN  = 300; // ms — wave swallows text left → right
+        const HOLD      = 0; // ms — both waves animate freely
+        const SWEEP_OUT = 300; // ms — wave retreats, text returns left → right
+        const TOTAL     = SWEEP_IN + HOLD + SWEEP_OUT;
+        const PHASE        = 0.15;  // phase increment per frame — controls wave speed
+        const WAVE_OFFSET  = Math.PI / 5; // phase offset between the two waves
+        const WAVE2_AMP    = .6;  // Second wave amplitude
+        const easeIn    = t => t * t * t;               // slow start, fast end — wave accelerates
+        const easeOut   = t => 1 - Math.pow(1 - t, 3); // fast start, slow end — text settles
+
+        let phase = 0;
+        const startTime = performance.now();
+
+        const loop = (now) => {
+          const elapsed = now - startTime;
+          const { ctx } = inst;
+          ctx.clearRect(0, 0, W, H);
+
+          let clipFrom, clipTo, sweepX;
+
+          if (elapsed < SWEEP_IN) {
+            sweepX   = easeIn(Math.min(elapsed / SWEEP_IN, 1)) * W;
+            clipFrom = 0;
+            clipTo   = sweepX;
+            textLayer.style.clipPath = `inset(0 0 0 ${sweepX}px)`;
+
+          } else if (elapsed < SWEEP_IN + HOLD) {
+            clipFrom = 0;
+            clipTo   = W;
+            textLayer.style.clipPath = `inset(0 0 0 ${W}px)`;
+
+          } else {
+            sweepX   = easeOut(Math.min((elapsed - SWEEP_IN - HOLD) / SWEEP_OUT, 1)) * W;
+            clipFrom = sweepX;
+            clipTo   = W;
+            textLayer.style.clipPath = `inset(0 ${W - sweepX}px 0 0)`;
+          }
+
+          phase += PHASE;
+          this._drawWave(ctx, W, H, fontSize, phase,                  inst.spatialOffset,  inst.strokeWidth, clipFrom, clipTo);
+          this._drawWave(ctx, W, H, fontSize, phase + WAVE_OFFSET,     inst.spatialOffset2, inst.strokeWidth, clipFrom, clipTo, WAVE2_AMP);
+
+          if (elapsed < TOTAL) {
+            inst.animId = requestAnimationFrame(loop);
+          } else {
+            inst.animId = null;
+            inst.canvas.style.opacity = "0";
+            textLayer.style.clipPath  = "";
+          }
+        };
+
+        inst.animId = requestAnimationFrame(loop);
+      }
+
+      _onLeave(el) {
+        const inst = this.instances.get(el);
+        if (!inst) return;
+        if (inst.animId) { cancelAnimationFrame(inst.animId); inst.animId = null; }
+        inst.textLayer.style.clipPath = "";
+        inst.canvas.style.opacity = "0";
+      }
+    }
+
+    new AudioWaveSweep();
 
     // ------------------------------------------------------------------------------
 
