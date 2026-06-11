@@ -236,6 +236,9 @@
   .px-2 {
     padding-inline: calc(var(--spacing) * 2);
   }
+  .pb-12 {
+    padding-bottom: calc(var(--spacing) * 12);
+  }
   .text-2xl {
     font-size: var(--text-2xl);
     line-height: var(--tw-leading, var(--text-2xl--line-height));
