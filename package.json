@@ -1,0 +1,14 @@
+{
+  "name": "mwtm-playground",
+  "private": true,
+  "scripts": {
+    "build": "postcss text-animations/assets/input.css -o text-animations/assets/style.css",
+    "watch": "postcss text-animations/assets/input.css -o text-animations/assets/style.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "postcss": "^8.0.0",
+    "postcss-cli": "^11.0.0",
+    "tailwindcss": "^4.0.0"
+  }
+}
