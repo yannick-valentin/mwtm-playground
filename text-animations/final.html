@@ -5,15 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MWTM text animations</title>
   <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/alte-haas-grotesk" />
-  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="stylesheet" href="assets/output.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 </head>
-<body>
+<body class="block p-6 md:p-12">
 
-  <div class="container">
+  <div class="container flex flex-col gap-24">
+    <div class="mb-auto text-2xl">Mix with the Masters text animations</div>
     <div>
-      <div class="row-label">Scanline + progressive reveal</div>
-      <div class="title"><span data-scanline-text-reveal>Community Threads</span></div>
+      <div class="text-4xl mb-6">Buttons</div>
+
+      <div class="row-label mb-4">Scanline progressive</div>
       <div class="btns-row">
         <button class="pill-btn"><span data-scanline-text-reveal>CALL TO ACTION</span></button>
         <button class="pill-btn white"><span data-scanline-text-reveal>CALL TO ACTION</span></button>
@@ -21,24 +23,20 @@
       </div>
     </div>
     <div>
-      <div class="row-label">Fisher-Yates</div>
+      <div class="text-4xl mb-6">Titles</div>
 
-      <div class="title" data-hover-shuffle-full>Community Threads</div>
-      <div class="btns-row">
-        <button class="pill-btn" data-hover-shuffle-full>CALL TO ACTION</button>
-        <button class="pill-btn white" data-hover-shuffle-full>CALL TO ACTION</button>
-        <button class="pill-btn black" data-hover-shuffle-full>CALL TO ACTION</button>
-      </div>
+      <div class="row-label">Fisher-Yates</div>
+      <div class="title mb-6" data-hover-shuffle-full>Free Content</div>
+      <div class="row-label">Fisher-Yates progressive</div>
+      <div class="title" data-hover-shuffle>Community Threads</div>
     </div>
     <div>
-      <div class="row-label">Fisher-Yates + progressive reveal</div>
+      <div class="text-4xl mb-6">Titles with background</div>
 
-      <div class="title" data-hover-shuffle>Community Threads</div>
-      <div class="btns-row">
-        <button class="pill-btn" data-hover-shuffle>CALL TO ACTION</button>
-        <button class="pill-btn white" data-hover-shuffle>CALL TO ACTION</button>
-        <button class="pill-btn black" data-hover-shuffle>CALL TO ACTION</button>
-      </div>
+      <div class="row-label mb-2">Fisher-Yates</div>
+      <div class="title mb-6"><span class="bg-white inline-block px-2" data-hover-shuffle-full>Free Content</span></div>
+      <div class="row-label mb-2">Fisher-Yates + progressive reveal</div>
+      <div class="title"><span class="bg-white inline-block px-2" data-hover-shuffle>Community Threads</span></div>
     </div>
   </div>
 
