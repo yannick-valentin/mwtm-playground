@@ -1186,17 +1186,20 @@
           [order[i], order[j]] = [order[j], order[i]];
         }
 
+        const waveHold = el.dataset.waveHold !== undefined ? Number(el.dataset.waveHold) : this.WAVE_HOLD;
+        const stepDur  = el.dataset.stepDur  !== undefined ? Number(el.dataset.stepDur)  : this.STEP_DUR;
+
         inst.timeouts = order.map((ci, step) =>
           setTimeout(() => {
             charSpans[ci].style.zIndex  = "3";
             charSpans[ci].style.opacity = "1";
-          }, this.WAVE_HOLD + step * this.STEP_DUR)
+          }, waveHold + step * stepDur)
         );
 
         inst.timeouts.push(setTimeout(() => {
           cancelAnimationFrame(inst.animId); inst.animId = null;
           canvas.style.opacity = "0";
-        }, this.WAVE_HOLD + charSpans.length * this.STEP_DUR + 50));
+        }, waveHold + charSpans.length * stepDur + 50));
       }
 
       _onLeave(el) {
